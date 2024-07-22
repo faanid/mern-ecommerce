@@ -1,0 +1,31 @@
+{
+  "name": "mern-ecommerce",
+  "version": "1.0.0",
+  "description": "ecommerce application build with the MERN stack",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "server": "nodemon backend/server.js",
+    "client": "npm start -prefix frontend",
+    "dev": "concurrently \"npm run server\" \"npm run client\" "
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/faanid/mern-ecommerce.git"
+  },
+  "author": "faanid",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/faanid/mern-ecommerce/issues"
+  },
+  "homepage": "https://github.com/faanid/mern-ecommerce#readme",
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "dotenv": "^16.4.5",
+    "nodemon": "^3.1.4"
+  }
+}
