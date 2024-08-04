@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node backend/server.js",
     "server": "nodemon backend/server.js",
-    "client": "npm start -prefix frontend",
+    "client": "npm start --prefix frontend",
     "dev": "concurrently \"npm run server\" \"npm run client\" "
   },
   "repository": {
@@ -21,7 +21,9 @@
   },
   "homepage": "https://github.com/faanid/mern-ecommerce#readme",
   "dependencies": {
-    "express": "^4.19.2"
+    "bcryptjs": "^2.4.3",
+    "express": "^4.19.2",
+    "mongoose": "^8.5.1"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
