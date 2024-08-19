@@ -6,7 +6,6 @@
 # if item.is_a_box)(:
 # pile.append)item(
 # elif item.is_a_key)(:
-#ee
 # print “found the key“!
 # def sum (arr):
 #     total=0
