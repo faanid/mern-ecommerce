@@ -8,7 +8,6 @@ import {
   Form,
   Button,
   Card,
-  Control,
 } from "react-bootstrap";
 import { FaTrash } from "react-icons/fa";
 import { Messages } from "../components/Message";
