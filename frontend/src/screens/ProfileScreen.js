@@ -1,19 +1,21 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Button, Col, Form, Row } from "react-bootstrap";
+import { Link } from "react-router-dom";
+import { Button, Col, Form, Row, Table } from "react-bootstrap";
 import { useGetUserProfileQuery, useUpdateUserProfileMutation } from "../slices/usersApiSlice";
+import { useGetMyOrdersQuery } from "../slices/ordersApiSlice";
 import Loader from "../components/Loader";
 import Message from "../components/Message";
 
 const ProfileScreen = () => {
-  const navigate = useNavigate();
   const { data: user, isLoading, error: profileError } = useGetUserProfileQuery();
+  const { data: orders, isLoading: ordersLoading, error: ordersError } = useGetMyOrdersQuery(undefined, { skip: !!profileError });
   const [updateProfile, { isLoading: isUpdating, error: updateError }] = useUpdateUserProfileMutation();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [success, setSuccess] = useState("");
+  const [validationError, setValidationError] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -25,8 +27,9 @@ const ProfileScreen = () => {
   const submitHandler = async (event) => {
     event.preventDefault();
     setSuccess("");
+    setValidationError("");
     if (password && password !== confirmPassword) {
-      setSuccess("Passwords do not match");
+      setValidationError("Passwords do not match");
       return;
     }
     const payload = { name, email };
@@ -46,9 +49,10 @@ const ProfileScreen = () => {
 
   return (
     <Row>
-      <Col md={3}>
+      <Col md={4}>
         <h2>User Profile</h2>
-        {success && <Message variant={success.includes("successfully") ? "success" : "danger"}>{success}</Message>}
+        {success && <Message variant="success">{success}</Message>}
+        {validationError && <Message variant="danger">{validationError}</Message>}
         {updateError && <Message variant="danger">{updateError?.data?.message || updateError.error}</Message>}
         <Form onSubmit={submitHandler}>
           <Form.Group className="my-3" controlId="name">
@@ -71,9 +75,27 @@ const ProfileScreen = () => {
           {isUpdating && <Loader />}
         </Form>
       </Col>
-      <Col md={9}>
+      <Col md={8}>
         <h2>My Orders</h2>
-        <p>Order history is available through the authenticated orders API. The order-history table will be added with the checkout UI integration.</p>
+        {ordersLoading ? <Loader /> : ordersError ? (
+          <Message variant="danger">{ordersError?.data?.message || ordersError.error}</Message>
+        ) : orders?.length ? (
+          <Table striped bordered hover responsive className="table-sm">
+            <thead><tr><th>ID</th><th>DATE</th><th>TOTAL</th><th>PAID</th><th>DELIVERED</th><th></th></tr></thead>
+            <tbody>
+              {orders.map((order) => (
+                <tr key={order._id}>
+                  <td>{order._id}</td>
+                  <td>{new Date(order.createdAt).toLocaleDateString()}</td>
+                  <td>${order.totalPrice.toFixed(2)}</td>
+                  <td>{order.isPaid ? new Date(order.paidAt).toLocaleDateString() : "No"}</td>
+                  <td>{order.isDelivered ? new Date(order.deliveredAt).toLocaleDateString() : "No"}</td>
+                  <td><Link className="btn btn-light btn-sm" to={`/order/${order._id}`}>Details</Link></td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        ) : <Message>You have not placed any orders yet.</Message>}
       </Col>
     </Row>
   );
