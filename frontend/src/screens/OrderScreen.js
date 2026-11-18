@@ -7,8 +7,8 @@ import Message from "../components/Message";
 
 const OrderScreen = () => {
   const { id } = useParams();
-  const { isLoading: isUserLoading, error: userError } = useGetUserProfileQuery();
-  const { data: order, isLoading, error } = useGetOrderDetailsQuery(id, { skip: !!userError });
+  const { data: user, isLoading: isUserLoading, error: userError } = useGetUserProfileQuery();
+  const { data: order, isLoading, error } = useGetOrderDetailsQuery(id, { skip: !user });
 
   if (isUserLoading || isLoading) return <Loader />;
   if (userError) return <Message variant="danger">Please <Link to={`/login?redirect=/order/${id}`}>sign in</Link> to view this order.</Message>;
