@@ -8,7 +8,7 @@ import Message from "../components/Message";
 
 const ProfileScreen = () => {
   const { data: user, isLoading, error: profileError } = useGetUserProfileQuery();
-  const { data: orders, isLoading: ordersLoading, error: ordersError } = useGetMyOrdersQuery(undefined, { skip: !!profileError });
+  const { data: orders, isLoading: ordersLoading, error: ordersError } = useGetMyOrdersQuery(undefined, { skip: !user });
   const [updateProfile, { isLoading: isUpdating, error: updateError }] = useUpdateUserProfileMutation();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
