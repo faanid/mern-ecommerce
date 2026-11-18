@@ -2,15 +2,17 @@ import mongoose from "mongoose";
 import asyncHandler from "../middleware/asyncHandler.js";
 import Order from "../modules/orderModel.js";
 import Product from "../modules/productModel.js";
+import { normalizeOrderItems } from "../utils/validation.js";
 
 const roundCurrency = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 const createOrder = asyncHandler(async (req, res) => {
   const { orderItems, shippingAddress, paymentMethod } = req.body;
 
-  if (!Array.isArray(orderItems) || orderItems.length === 0) {
+  const { items: validatedItems, error: itemsError } = normalizeOrderItems(orderItems);
+  if (itemsError) {
     res.status(400);
-    throw new Error("An order must contain at least one item");
+    throw new Error(itemsError);
   }
 
   const requiredAddressFields = ["address", "city", "postalCode", "country"];
@@ -32,16 +34,10 @@ const createOrder = asyncHandler(async (req, res) => {
   }
 
   const normalizedItems = [];
-  for (const item of orderItems) {
-    if (
-      !item ||
-      typeof item !== "object" ||
-      !mongoose.isValidObjectId(item.product) ||
-      !Number.isInteger(Number(item.qty)) ||
-      Number(item.qty) < 1
-    ) {
+  for (const item of validatedItems) {
+    if (!mongoose.isValidObjectId(item.product)) {
       res.status(400);
-      throw new Error("Each order item must have a valid product and quantity");
+      throw new Error("Each order item must have a valid product ID");
     }
 
     const product = await Product.findById(item.product);
@@ -49,7 +45,7 @@ const createOrder = asyncHandler(async (req, res) => {
       res.status(404);
       throw new Error("One of the products in this order no longer exists");
     }
-    if (product.countInStock < Number(item.qty)) {
+    if (product.countInStock < item.qty) {
       res.status(400);
       throw new Error(`Insufficient stock for ${product.name}`);
     }
@@ -59,7 +55,7 @@ const createOrder = asyncHandler(async (req, res) => {
       name: product.name,
       image: product.image,
       price: product.price,
-      qty: Number(item.qty),
+      qty: item.qty,
     });
   }
 
