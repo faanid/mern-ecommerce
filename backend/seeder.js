@@ -1,58 +1,56 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import colors from "colors";
-import users from "./data/users";
-import products from "./data/products";
-import User from "./modules/userModel";
-import Product from "./modules/productModel";
-import Order from "./modules/orderModel";
-import connectDB from "./config/db";
+import users from "./data/users.js";
+import products from "./data/products.js";
+import User from "./modules/userModel.js";
+import Product from "./modules/productModel.js";
+import Order from "./modules/orderModel.js";
+import connectDB from "./config/db.js";
 
 dotenv.config();
 
-connectDB();
-
 const importData = async () => {
-  try {
-    await Order.deleteMany();
-    await Product.deleteMany();
-    await User.deleteMany();
+  await Order.deleteMany();
+  await Product.deleteMany();
+  await User.deleteMany();
 
-    const createdUsers = await User.insertMany(users);
+  const createdUsers = await User.insertMany(users);
+  const adminUser = createdUsers[0]._id;
 
-    const adminUser = createdUsers[0]._id;
+  const sampleProducts = products.map((product) => ({
+    ...product,
+    user: adminUser,
+  }));
 
-    const sampleProducts = products.map((product) => {
-      //all products including adminuser
-      return { ...product, user: adminUser };
-    });
-
-    await Product.insertMany(sampleProducts); //insert all products into db
-
-    console.log("Data Imported!".green.inverse);
-    process.exit();
-  } catch (error) {
-    console.log(`${error}`.red.inverse);
-    process.exit(1);
-  }
+  await Product.insertMany(sampleProducts);
+  console.log("Data imported successfully.");
 };
 
 const destroyData = async () => {
-  try {
-    await Order.deleteMany();
-    await Product.deleteMany();
-    await User.deleteMany();
+  await Order.deleteMany();
+  await Product.deleteMany();
+  await User.deleteMany();
 
-    console.log("Data Destroyed!".red.inverse);
-    process.exit();
+  console.log("Data destroyed successfully.");
+};
+
+const runSeeder = async () => {
+  try {
+    await connectDB();
+
+    if (process.argv[2] === "-d") {
+      await destroyData();
+    } else {
+      await importData();
+    }
+
+    await mongoose.disconnect();
+    process.exit(0);
   } catch (error) {
-    console.error(`${error}`.red.inverse);
+    console.error("Seeder failed:", error);
+    await mongoose.disconnect().catch(() => {});
     process.exit(1);
   }
 };
 
-if (process.argv[2] === "-d") {
-  destroyData();
-} else {
-  importData();
-}
+runSeeder();
