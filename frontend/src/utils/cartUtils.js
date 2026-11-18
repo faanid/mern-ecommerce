@@ -1,26 +1,25 @@
 export const addDecimals = (num) => {
-  return (Math.round(num * 100) / 100).toFixed(2);
+  return (Math.round(Number(num) * 100) / 100).toFixed(2);
 };
 
 export const updateCart = (state) => {
-  // Calculate items price
-  state.itemsPrice = addDecimals(
+  const itemsPrice = Number(
     state.cartItems.reduce((acc, item) => acc + item.price * item.qty, 0)
   );
 
-  // Calculate shipping price (If order is over $100 then free, else $10 shipping)
-  state.shippingPrice = addDecimals(state.itemsPrice > 100 ? 0 : 10);
+  state.itemsPrice = addDecimals(itemsPrice);
+  state.shippingPrice = addDecimals(itemsPrice > 100 ? 0 : 10);
+  state.taxPrice = addDecimals(itemsPrice * 0.15);
+  state.totalPrice = addDecimals(
+    itemsPrice + Number(state.shippingPrice) + Number(state.taxPrice)
+  );
 
-  // Calculate tax price (15% tax)
-  state.taxPrice = addDecimals(Number((0.15 * state.itemsPrice).toFixed(2)));
+  try {
+    localStorage.setItem("cart", JSON.stringify(state));
+  } catch (error) {
+    // The cart remains usable in memory if browser storage is unavailable.
+    console.error("Unable to persist cart to local storage:", error);
+  }
 
-  // Calculate total price
-  state.totalPrice = (
-    Number(state.itemsPrice) +
-    Number(state.shippingPrice) +
-    Number(state.taxPrice)
-  ).toFixed(2);
-
-  localStorage.setItem("cart", JSON.stringify(state));
   return state;
 };

@@ -1,68 +1,103 @@
 # MERN E-commerce
 
-## Overview
+A MERN-stack e-commerce application built with MongoDB, Express, React, and Node.js.
 
-This is a full-stack E-commerce application built with the MERN stack (MongoDB, Express.js, React, and Node.js). It provides a platform where users can browse products, make purchases, and manage their accounts, while admins and merchants can manage product listings and track orders.
+## Current functionality
 
-## Features
+- Browse the product catalogue
+- View product details
+- Add products to a shopping cart and update quantities
+- Persist the cart in browser local storage
+- Initial user authentication and product API foundations
 
-- **User Management:** Register, login, and manage user profiles.
-- **Product Management:** View product listings with categories and search functionality.
-- **Shopping Cart:** Add products to the cart and proceed with the checkout.
-- **Payment Integration:** Secure payment gateway using Stripe/PayPal.
-- **Order Management:** Track orders and view order history.
-- **Admin Dashboard:** Manage products, categories, users, and orders.
-- **Responsive UI:** Optimized for both desktop and mobile devices.
+> Note: checkout, order processing, payment integration, and several user-management endpoints are not implemented yet. They should not be considered production-ready features.
 
-## Tech Stack
+## Tech stack
 
-- **Frontend:** React.js, Redux for state management, React Router for navigation.
-- **Backend:** Node.js, Express.js for building REST APIs, Mongoose for MongoDB interactions.
-- **Database:** MongoDB for storing user, product, and order information.
-- **Authentication:** JSON Web Tokens (JWT) for secure authentication.
-- **Payment Gateway:** Stripe/PayPal for processing payments.
+- **Frontend:** React 18, React Router, Redux Toolkit / RTK Query, React Bootstrap
+- **Backend:** Node.js, Express 4, Mongoose
+- **Authentication foundation:** JSON Web Tokens stored in an HTTP-only cookie
 
-## Installation
+## Requirements
 
-### Prerequisites
+- Node.js 18 or newer
+- npm
+- A MongoDB database (local or hosted)
 
-- Node.js and npm installed.
-- MongoDB installed and running.
+## Setup
 
-### Steps to Install
+1. Clone the repository and enter the project directory:
 
-1. **Clone the repository:**
    ```bash
    git clone https://github.com/faanid/mern-ecommerce.git
    cd mern-ecommerce
    ```
-2. **Install backend dependencies:**
+
+2. Install backend/root dependencies:
+
    ```bash
    npm install
    ```
-3. **Install frontend dependencies:**
+
+3. Install frontend dependencies:
+
    ```bash
-   cd client
-   npm install
+   npm install --prefix frontend
    ```
-4. **Setup environment variables:**
-   
-   - Create a .env file in the root directory for backend configurations.
-   - Add the following variables:
-     
-   ```bash
-   MONGO_URI=your_mongoDB_connection_string
-   JWT_SECRET=your_jwt_secret
-   STRIPE_SECRET_KEY=your_stripe_secret_key
-   ```
-   - Create another .env file inside the client directory for frontend configurations:
-    
-   ```bash
-   REACT_APP_API_URL=http://localhost:5000/api
-   ```
-   5. **Run the application:**
-      
+
+4. Create a root `.env` file based on `.env.example` and set your own MongoDB connection string and JWT secret.
+
+5. Start the API and React development server:
+
    ```bash
    npm run dev
    ```
-   
+
+   - API: http://localhost:5000
+   - Frontend: http://localhost:3000
+
+## Useful scripts
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start backend and frontend in development |
+| `npm start` | Start the backend |
+| `npm run server` | Start the backend with nodemon |
+| `npm run client` | Start the frontend |
+| `npm run data:import` | Clear and seed the database with sample data |
+| `npm run data:destroy` | Delete seeded users, products, and orders |
+
+**Warning:** The data import and destroy scripts delete existing documents from the `users`, `products`, and `orders` collections. Use them only with a disposable development database.
+
+## Environment variables
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `MONGO_URI` | Yes | MongoDB connection string |
+| `JWT_SECRET` | Yes | A long, random secret used to sign JWTs |
+| `PORT` | No | API port (defaults to `5000`) |
+| `NODE_ENV` | No | Set to `production` in production |
+
+Never commit your real `.env` file or production secrets.
+
+## Project structure
+
+```text
+.
+├── backend/
+│   ├── config/
+│   ├── controllers/
+│   ├── data/
+│   ├── middleware/
+│   ├── modules/
+│   ├── routes/
+│   └── server.js
+├── frontend/
+│   └── src/
+├── package.json
+└── README.md
+```
+
+## Development status
+
+This repository is under active maintenance. API completeness, validation, automated tests, deployment configuration, and production security hardening remain ongoing work.

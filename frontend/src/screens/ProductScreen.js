@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Link } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   Row,
   Col,
@@ -19,9 +18,7 @@ import { addToCart } from "../slices/cartSlice";
 
 const ProductScreen = () => {
   const { id: productId } = useParams();
-
   const [qty, setQty] = useState(1);
-
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -47,7 +44,7 @@ const ProductScreen = () => {
         <Message variant="danger">
           {error?.data?.message || error.error}
         </Message>
-      ) : (
+      ) : product ? (
         <Row>
           <Col md={5}>
             <Image src={product.image} alt={product.name} fluid />
@@ -78,37 +75,34 @@ const ProductScreen = () => {
                     <strong>${product.price}</strong>
                   </Row>
                 </ListGroup.Item>
-
                 <ListGroup.Item>
                   <Row>
                     <Col>Status:</Col>
                     <strong>
-                      ${product.countInStock > 0 ? "In Stock" : "Out of Stock"}
+                      {product.countInStock > 0 ? "In Stock" : "Out of Stock"}
                     </strong>
                   </Row>
                 </ListGroup.Item>
-
                 {product.countInStock > 0 && (
                   <ListGroup.Item>
                     <Row>
                       <Col>Qty</Col>
                       <Col>
-                        <Form.Control
-                          as="select"
+                        <Form.Select
                           value={qty}
                           onChange={(e) => setQty(Number(e.target.value))}
+                          aria-label="Product quantity"
                         >
                           {[...Array(product.countInStock).keys()].map((x) => (
                             <option key={x + 1} value={x + 1}>
                               {x + 1}
                             </option>
                           ))}
-                        </Form.Control>
+                        </Form.Select>
                       </Col>
                     </Row>
                   </ListGroup.Item>
                 )}
-
                 <ListGroup.Item>
                   <Button
                     className="btn-black"
@@ -116,13 +110,15 @@ const ProductScreen = () => {
                     disabled={product.countInStock === 0}
                     onClick={addToCartHandler}
                   >
-                    Add To Card
+                    Add To Cart
                   </Button>
                 </ListGroup.Item>
               </ListGroup>
             </Card>
           </Col>
         </Row>
+      ) : (
+        <Message variant="danger">Product not found.</Message>
       )}
     </>
   );

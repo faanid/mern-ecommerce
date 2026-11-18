@@ -1,103 +1,202 @@
-import asyncHandler from "../middleware/asyncHandler";
-import User from "../modules/userModel";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import asyncHandler from "../middleware/asyncHandler.js";
+import User from "../modules/userModel.js";
 
-// @desc Auth user & get token
-// @route POST/api/users/login
-// @access Public
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict",
+  maxAge: 30 * 24 * 60 * 60 * 1000,
+  path: "/",
+};
 
+const createToken = (userId) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET is not configured");
+  }
+
+  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "30d" });
+};
+
+const toPublicUser = (user) => ({
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  isAdmin: user.isAdmin,
+});
+
+// @route POST /api/users/login
 const authUser = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const password = req.body.password;
 
-  const user = await User.findOne({ email });
+  if (!email || typeof password !== "string" || !password) {
+    res.status(400);
+    throw new Error("Email and password are required");
+  }
 
-  if (user && (await user.matchPassword(password))) {
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "30d",
-    });
-
-    // Set JWT as HTTP-Only cookie
-    res.cookie("jwt", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV !== "development",
-      sameSite: "strict",
-      maxAge: 30 * 24 * 60 * 60 * 100, //30 Days
-    });
-
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      isAdmin: user.isAdmin,
-    });
-  } else {
+  const user = await User.findOne({ email }).select("+password");
+  if (!user || !(await user.matchPassword(password))) {
     res.status(401);
     throw new Error("Invalid email or password");
   }
+
+  res.cookie("jwt", createToken(user._id.toString()), COOKIE_OPTIONS);
+  res.json(toPublicUser(user));
 });
 
-// @desc Register user
-// @route POST/api/users
-// @access Public
-
+// @route POST /api/users
 const registerUser = asyncHandler(async (req, res) => {
-  res.send("register user");
+  const name = String(req.body.name || "").trim();
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const password = req.body.password;
+
+  if (!name || !email || typeof password !== "string") {
+    res.status(400);
+    throw new Error("Name, email, and password are required");
+  }
+  if (password.length < 8) {
+    res.status(400);
+    throw new Error("Password must be at least 8 characters long");
+  }
+
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    res.status(409);
+    throw new Error("An account with this email already exists");
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 12);
+  const user = await User.create({ name, email, password: hashedPassword });
+
+  res.cookie("jwt", createToken(user._id.toString()), COOKIE_OPTIONS);
+  res.status(201).json(toPublicUser(user));
 });
 
-// @desc Logout user / clear cookie
-// @route POST/api/users/logout
-// @access Private
-
+// @route POST /api/users/logout
 const logoutUser = asyncHandler(async (req, res) => {
-  res.send("logout user");
+  res.clearCookie("jwt", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+  });
+  res.status(200).json({ message: "Logged out successfully" });
 });
 
-// @desc Get user profile
-// @route GET/api/users/profile
-// @access Private
-
+// @route GET /api/users/profile
 const getUserProfile = asyncHandler(async (req, res) => {
-  res.send("get user profile");
+  res.json(toPublicUser(req.user));
 });
 
-// @desc Update user Profile
-// @route PUT/api/users/profile
-// @access Private/Admin
-
+// @route PUT /api/users/profile
 const updateUserProfile = asyncHandler(async (req, res) => {
-  res.send("update user profile");
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  if (req.body.name !== undefined) {
+    const name = String(req.body.name).trim();
+    if (!name) {
+      res.status(400);
+      throw new Error("Name cannot be empty");
+    }
+    user.name = name;
+  }
+
+  if (req.body.email !== undefined) {
+    const email = String(req.body.email).trim().toLowerCase();
+    if (!email) {
+      res.status(400);
+      throw new Error("Email cannot be empty");
+    }
+    const emailOwner = await User.findOne({ email, _id: { $ne: user._id } });
+    if (emailOwner) {
+      res.status(409);
+      throw new Error("An account with this email already exists");
+    }
+    user.email = email;
+  }
+
+  if (req.body.password !== undefined) {
+    if (typeof req.body.password !== "string" || req.body.password.length < 8) {
+      res.status(400);
+      throw new Error("Password must be at least 8 characters long");
+    }
+    user.password = await bcrypt.hash(req.body.password, 12);
+  }
+
+  const updatedUser = await user.save();
+  res.json(toPublicUser(updatedUser));
 });
 
-// @desc Get users
-// @route GET/api/users
-// @access Private/Admin
-
+// @route GET /api/users
 const getUsers = asyncHandler(async (req, res) => {
-  res.send("get user");
+  const users = await User.find({}).select("-password").sort({ createdAt: -1 });
+  res.json(users);
 });
 
-// @desc Get users by ID
-// @route GET/api/users/:id
-// @access Private/Admin
-
+// @route GET /api/users/:id
 const getUserByID = asyncHandler(async (req, res) => {
-  res.send("get user bt id");
+  const user = await User.findById(req.params.id).select("-password");
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+  res.json(user);
 });
 
-// @desc Delete user
-// @route DELETE/api/users/:id
-// @access Private/Admin
-
+// @route DELETE /api/users/:id
 const deleteUser = asyncHandler(async (req, res) => {
-  res.send("delete user");
+  if (req.user._id.toString() === req.params.id) {
+    res.status(400);
+    throw new Error("Administrators cannot delete their own account here");
+  }
+
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  await user.deleteOne();
+  res.json({ message: "User removed" });
 });
 
-// @desc Update user
-// @route PUT/api/users/:id
-// @access Private/Admin
-
+// @route PUT /api/users/:id
 const updateUser = asyncHandler(async (req, res) => {
-  res.send("update user");
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  if (req.body.name !== undefined) {
+    const name = String(req.body.name).trim();
+    if (!name) {
+      res.status(400);
+      throw new Error("Name cannot be empty");
+    }
+    user.name = name;
+  }
+  if (req.body.email !== undefined) {
+    const email = String(req.body.email).trim().toLowerCase();
+    const emailOwner = await User.findOne({ email, _id: { $ne: user._id } });
+    if (emailOwner) {
+      res.status(409);
+      throw new Error("An account with this email already exists");
+    }
+    user.email = email;
+  }
+  if (req.body.isAdmin !== undefined) {
+    user.isAdmin = Boolean(req.body.isAdmin);
+  }
+
+  const updatedUser = await user.save();
+  res.json(toPublicUser(updatedUser));
 });
 
 export {
