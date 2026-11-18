@@ -1,38 +1,42 @@
 import jwt from "jsonwebtoken";
-import asyncHandler from "./asyncHandler";
-import User from "../modules/userModel";
-import res from "express/lib/response";
+import asyncHandler from "./asyncHandler.js";
+import User from "../modules/userModel.js";
 
-// Protect routes
+// Protect routes using the HTTP-only JWT cookie.
 export const protect = asyncHandler(async (req, res, next) => {
-  let token;
-});
+  const token = req.cookies?.jwt;
 
-// Read the JWT from the cookie
-token = req.cookie.jwt;
+  if (!token) {
+    res.status(401);
+    throw new Error("Not authorized, no token");
+  }
 
-if (token) {
+  let decoded;
+
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.userId).select("-password");
-    next();
-  } catch (error) {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch {
     res.status(401);
     throw new Error("Not authorized, token failed");
   }
-} else {
-  res.status(401);
-  throw new Error("Not authorized, no token");
-}
 
-// Admin middleware
-const admin = (req, res, next) => {
-  if (req.user && req.user.isAdmin) {
-    next();
-  } else {
+  const user = await User.findById(decoded.userId).select("-password");
+
+  if (!user) {
     res.status(401);
-    throw new Error("Not authorized as admin");
+    throw new Error("Not authorized, user no longer exists");
   }
-};
 
-export { protect, admin };
+  req.user = user;
+  next();
+});
+
+// Restrict routes to administrator accounts.
+export const admin = (req, res, next) => {
+  if (req.user?.isAdmin) {
+    return next();
+  }
+
+  res.status(403);
+  return next(new Error("Not authorized as an administrator"));
+};
