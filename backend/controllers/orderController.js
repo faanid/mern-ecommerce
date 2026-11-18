@@ -34,6 +34,8 @@ const createOrder = asyncHandler(async (req, res) => {
   const normalizedItems = [];
   for (const item of orderItems) {
     if (
+      !item ||
+      typeof item !== "object" ||
       !mongoose.isValidObjectId(item.product) ||
       !Number.isInteger(Number(item.qty)) ||
       Number(item.qty) < 1
@@ -98,7 +100,7 @@ const getOrderById = asyncHandler(async (req, res) => {
 
   if (
     !req.user.isAdmin &&
-    order.user._id.toString() !== req.user._id.toString()
+    order.user?._id?.toString() !== req.user._id.toString()
   ) {
     res.status(403);
     throw new Error("You are not allowed to view this order");
