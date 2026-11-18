@@ -26,11 +26,19 @@ const createProduct = asyncHandler(async (req, res) => {
   const { name, price, image, brand, category, countInStock, description } = req.body;
 
   if (
-    !name?.trim() ||
-    !image?.trim() ||
-    !brand?.trim() ||
-    !category?.trim() ||
-    !description?.trim() ||
+    typeof name !== "string" ||
+    !name.trim() ||
+    typeof image !== "string" ||
+    !image.trim() ||
+    typeof brand !== "string" ||
+    !brand.trim() ||
+    typeof category !== "string" ||
+    !category.trim() ||
+    typeof description !== "string" ||
+    !description.trim() ||
+    price === undefined ||
+    price === null ||
+    price === "" ||
     !Number.isFinite(Number(price)) ||
     Number(price) < 0 ||
     !Number.isInteger(Number(countInStock)) ||
