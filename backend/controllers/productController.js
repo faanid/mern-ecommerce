@@ -23,16 +23,32 @@ const getProductById = asyncHandler(async (req, res) => {
 });
 
 const createProduct = asyncHandler(async (req, res) => {
+  const { name, price, image, brand, category, countInStock, description } = req.body;
+
+  if (
+    !name?.trim() ||
+    !image?.trim() ||
+    !brand?.trim() ||
+    !category?.trim() ||
+    !description?.trim() ||
+    !Number.isFinite(Number(price)) ||
+    Number(price) < 0 ||
+    !Number.isInteger(Number(countInStock)) ||
+    Number(countInStock) < 0
+  ) {
+    res.status(400);
+    throw new Error("Provide valid product details, price, and stock quantity");
+  }
+
   const product = await Product.create({
-    name: "New Product",
-    price: 0,
+    name: name.trim(),
+    price: Number(price),
     user: req.user._id,
-    image: "/images/sample.jpg",
-    brand: "Sample brand",
-    category: "Sample category",
-    countInStock: 0,
-    numReviews: 0,
-    description: "Add a product description",
+    image: image.trim(),
+    brand: brand.trim(),
+    category: category.trim(),
+    countInStock: Number(countInStock),
+    description: description.trim(),
   });
 
   res.status(201).json(product);
