@@ -192,7 +192,11 @@ const updateUser = asyncHandler(async (req, res) => {
     user.email = email;
   }
   if (req.body.isAdmin !== undefined) {
-    user.isAdmin = Boolean(req.body.isAdmin);
+    if (typeof req.body.isAdmin !== "boolean") {
+      res.status(400);
+      throw new Error("isAdmin must be a boolean");
+    }
+    user.isAdmin = req.body.isAdmin;
   }
 
   const updatedUser = await user.save();
