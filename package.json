@@ -27,11 +27,11 @@
     "cookie-parser": "^1.4.6",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.9.5"
+    "mongoose": "^8.9.5",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "dotenv": "^16.4.5",
     "nodemon": "^3.1.4"
   }
 }
