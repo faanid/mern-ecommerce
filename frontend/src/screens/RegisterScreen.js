@@ -14,7 +14,8 @@ const RegisterScreen = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [register, { isLoading, error }] = useRegisterMutation();
-  const redirect = searchParams.get("redirect") || "/";
+  const requestedRedirect = searchParams.get("redirect") || "/";
+  const redirect = requestedRedirect.startsWith("/") && !requestedRedirect.startsWith("//") ? requestedRedirect : "/";
 
   const submitHandler = async (event) => {
     event.preventDefault();
