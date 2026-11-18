@@ -34,6 +34,8 @@ const createProduct = asyncHandler(async (req, res) => {
     ...data,
     user: req.user._id,
   });
+
+  res.status(201).json(product);
 });
 
 const updateProduct = asyncHandler(async (req, res) => {
