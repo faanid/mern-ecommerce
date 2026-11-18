@@ -10,23 +10,23 @@ import {
   Card,
 } from "react-bootstrap";
 import { FaTrash } from "react-icons/fa";
-import { Messages } from "../components/Message";
+import Message from "../components/Message";
 import { addToCart, removeFromCart } from "../slices/cartSlice";
 
 const CartScreen = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const cart = useSelector((state) => state.cart);
-  const { cartItems } = cart;
+  const { cartItems } = useSelector((state) => state.cart);
 
-  const addToCartHandler = async (product, qty) => {
+  const addToCartHandler = (product, qty) => {
     dispatch(addToCart({ ...product, qty }));
   };
 
-  const removeFromCartHandler = async (id) => {
-    dispatch(id);
+  const removeFromCartHandler = (id) => {
+    dispatch(removeFromCart(id));
   };
+
   const checkOutHandler = () => {
     navigate("/login?redirect=/shipping");
   };
@@ -36,9 +36,9 @@ const CartScreen = () => {
       <Col md={8}>
         <h1 style={{ marginBottom: "20px" }}>Shopping Cart</h1>
         {cartItems.length === 0 ? (
-          <Messages>
+          <Message>
             Your cart is empty <Link to="/">Go Back</Link>
-          </Messages>
+          </Message>
         ) : (
           <ListGroup variant="flush">
             {cartItems.map((item) => (
@@ -52,24 +52,25 @@ const CartScreen = () => {
                   </Col>
                   <Col md={2}>${item.price}</Col>
                   <Col md={2}>
-                    <Form.Control
-                      as="select"
+                    <Form.Select
                       value={item.qty}
                       onChange={(e) =>
                         addToCartHandler(item, Number(e.target.value))
                       }
+                      aria-label={`Quantity for ${item.name}`}
                     >
                       {[...Array(item.countInStock).keys()].map((x) => (
                         <option key={x + 1} value={x + 1}>
                           {x + 1}
                         </option>
                       ))}
-                    </Form.Control>
+                    </Form.Select>
                   </Col>
                   <Col md={2}>
                     <Button
                       type="button"
                       variant="light"
+                      aria-label={`Remove ${item.name} from cart`}
                       onClick={() => removeFromCartHandler(item._id)}
                     >
                       <FaTrash />
