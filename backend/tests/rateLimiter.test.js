@@ -45,3 +45,27 @@ test("rate limiter blocks requests after the maximum and returns retry informati
   assert.equal(nextCalled, false);
   assert.match(second.body.message, /Too many requests/);
 });
+
+test("separate rate limiter instances maintain independent counters for the same IP", () => {
+  const now = () => 20_000;
+  const loginLimiter = createRateLimiter({ windowMs: 15 * 60_000, max: 2, now });
+  const registrationLimiter = createRateLimiter({ windowMs: 60 * 60_000, max: 1, now });
+  const req = { ip: "shared-client" };
+
+  const loginFirst = mockResponse();
+  loginLimiter(req, loginFirst, () => {});
+  const loginSecond = mockResponse();
+  loginLimiter(req, loginSecond, () => {});
+  const loginThird = mockResponse();
+  loginLimiter(req, loginThird, () => {});
+
+  assert.equal(loginThird.statusCode, 429);
+
+  const registrationFirst = mockResponse();
+  let registrationNextCalled = false;
+  registrationLimiter(req, registrationFirst, () => { registrationNextCalled = true; });
+
+  assert.equal(registrationFirst.statusCode, 200);
+  assert.equal(registrationNextCalled, true);
+  assert.equal(registrationFirst.headers["RateLimit-Remaining"], "0");
+});
