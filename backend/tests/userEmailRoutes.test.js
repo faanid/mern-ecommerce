@@ -150,3 +150,23 @@ test("profile update trims and lowercases a valid email", async (t) => {
   assert.equal(user.email, "new.user@example.com");
   assert.equal(calls.save, 1);
 });
+
+
+test("registration returns a validation error when the request body is missing", async (t) => {
+  const { baseUrl, calls } = await createHarness(t);
+  const response = await fetch(`${baseUrl}/api/users`, { method: "POST" });
+
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).message, "Name, email, and password are required");
+  assert.equal(calls.findOne, 0);
+  assert.equal(calls.create, 0);
+});
+
+test("login returns a validation error when the request body is missing", async (t) => {
+  const { baseUrl, calls } = await createHarness(t);
+  const response = await fetch(`${baseUrl}/api/users/login`, { method: "POST" });
+
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).message, "Email and password are required");
+  assert.equal(calls.findOne, 0);
+});
