@@ -12,12 +12,14 @@ import {
 import { FaTrash } from "react-icons/fa";
 import Message from "../components/Message";
 import { addToCart, removeFromCart } from "../slices/cartSlice";
+import { useGetUserProfileQuery } from "../slices/usersApiSlice";
 
 const CartScreen = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const { cartItems } = useSelector((state) => state.cart);
+  const { data: user } = useGetUserProfileQuery();
 
   const addToCartHandler = (product, qty) => {
     dispatch(addToCart({ ...product, qty }));
@@ -28,7 +30,7 @@ const CartScreen = () => {
   };
 
   const checkOutHandler = () => {
-    navigate("/login?redirect=/shipping");
+    navigate(user ? "/shipping" : "/login?redirect=/shipping");
   };
 
   return (

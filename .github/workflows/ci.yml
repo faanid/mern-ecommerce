@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "refactor/**"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+
+      - name: Run backend unit tests
+        run: npm test
+
+      - name: Check backend JavaScript syntax
+        run: find backend -name "*.js" -print0 | xargs -0 -n1 node --check
+
+      - name: Build frontend
+        run: npm run build --prefix frontend
+        env:
+          CI: true
+          NODE_OPTIONS: --openssl-legacy-provider

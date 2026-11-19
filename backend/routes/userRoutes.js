@@ -12,10 +12,11 @@ import {
   updateUser,
 } from "../controllers/userController.js";
 import { protect, admin } from "../middleware/authMiddleware.js";
+import { authRateLimiter, registerRateLimiter } from "../middleware/rateLimiter.js";
 
-router.route("/").post(registerUser).get(protect, admin, getUsers);
+router.route("/").post(registerRateLimiter, registerUser).get(protect, admin, getUsers);
 router.post("/logout", logoutUser);
-router.post("/login", authUser);
+router.post("/login", authRateLimiter, authUser);
 router
   .route("/profile")
   .get(protect, getUserProfile)

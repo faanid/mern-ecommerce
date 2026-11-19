@@ -2,15 +2,21 @@ import mongoose from "mongoose";
 import asyncHandler from "../middleware/asyncHandler.js";
 import Order from "../modules/orderModel.js";
 import Product from "../modules/productModel.js";
+import { normalizeOrderItems } from "../utils/validation.js";
+import { getDeliveryError } from "../utils/orderState.js";
 
 const roundCurrency = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 const createOrder = asyncHandler(async (req, res) => {
-  const { orderItems, shippingAddress, paymentMethod } = req.body;
+  const body = req.body && typeof req.body === "object" && !Array.isArray(req.body)
+    ? req.body
+    : {};
+  const { orderItems, shippingAddress, paymentMethod } = body;
 
-  if (!Array.isArray(orderItems) || orderItems.length === 0) {
+  const { items: validatedItems, error: itemsError } = normalizeOrderItems(orderItems);
+  if (itemsError) {
     res.status(400);
-    throw new Error("An order must contain at least one item");
+    throw new Error(itemsError);
   }
 
   const requiredAddressFields = ["address", "city", "postalCode", "country"];
@@ -32,14 +38,10 @@ const createOrder = asyncHandler(async (req, res) => {
   }
 
   const normalizedItems = [];
-  for (const item of orderItems) {
-    if (
-      !mongoose.isValidObjectId(item.product) ||
-      !Number.isInteger(Number(item.qty)) ||
-      Number(item.qty) < 1
-    ) {
+  for (const item of validatedItems) {
+    if (!mongoose.isValidObjectId(item.product)) {
       res.status(400);
-      throw new Error("Each order item must have a valid product and quantity");
+      throw new Error("Each order item must have a valid product ID");
     }
 
     const product = await Product.findById(item.product);
@@ -47,7 +49,7 @@ const createOrder = asyncHandler(async (req, res) => {
       res.status(404);
       throw new Error("One of the products in this order no longer exists");
     }
-    if (product.countInStock < Number(item.qty)) {
+    if (product.countInStock < item.qty) {
       res.status(400);
       throw new Error(`Insufficient stock for ${product.name}`);
     }
@@ -57,7 +59,7 @@ const createOrder = asyncHandler(async (req, res) => {
       name: product.name,
       image: product.image,
       price: product.price,
-      qty: Number(item.qty),
+      qty: item.qty,
     });
   }
 
@@ -98,7 +100,7 @@ const getOrderById = asyncHandler(async (req, res) => {
 
   if (
     !req.user.isAdmin &&
-    order.user._id.toString() !== req.user._id.toString()
+    order.user?._id?.toString() !== req.user._id.toString()
   ) {
     res.status(403);
     throw new Error("You are not allowed to view this order");
@@ -119,6 +121,35 @@ const getOrders = asyncHandler(async (req, res) => {
   res.json(orders);
 });
 
+const updateOrderToPaid = asyncHandler(async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    res.status(404);
+    throw new Error("Order not found");
+  }
+
+  const order = await Order.findById(req.params.id);
+  if (!order) {
+    res.status(404);
+    throw new Error("Order not found");
+  }
+
+  if (order.isPaid) {
+    res.json(order);
+    return;
+  }
+
+  const paidAt = new Date();
+  order.isPaid = true;
+  order.paidAt = paidAt;
+  order.paymentResult = {
+    status: "Manually confirmed by admin",
+    update_time: paidAt.toISOString(),
+  };
+
+  const updatedOrder = await order.save();
+  res.json(updatedOrder);
+});
+
 const updateOrderToDelivered = asyncHandler(async (req, res) => {
   if (!mongoose.isValidObjectId(req.params.id)) {
     res.status(404);
@@ -131,10 +162,21 @@ const updateOrderToDelivered = asyncHandler(async (req, res) => {
     throw new Error("Order not found");
   }
 
+  const deliveryError = getDeliveryError(order);
+  if (deliveryError) {
+    res.status(400);
+    throw new Error(deliveryError);
+  }
+
+  if (order.isDelivered) {
+    res.json(order);
+    return;
+  }
+
   order.isDelivered = true;
   order.deliveredAt = new Date();
   const updatedOrder = await order.save();
   res.json(updatedOrder);
 });
 
-export { createOrder, getOrderById, getMyOrders, getOrders, updateOrderToDelivered };
+export { createOrder, getOrderById, getMyOrders, getOrders, updateOrderToPaid, updateOrderToDelivered };

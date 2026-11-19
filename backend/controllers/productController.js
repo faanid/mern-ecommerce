@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import asyncHandler from "../middleware/asyncHandler.js";
 import Product from "../modules/productModel.js";
+import { validateProductFields } from "../utils/validation.js";
 
 const getProducts = asyncHandler(async (req, res) => {
   const products = await Product.find({}).sort({ createdAt: -1 });
@@ -23,16 +24,15 @@ const getProductById = asyncHandler(async (req, res) => {
 });
 
 const createProduct = asyncHandler(async (req, res) => {
+  const { data, error } = validateProductFields(req.body);
+  if (error) {
+    res.status(400);
+    throw new Error(error);
+  }
+
   const product = await Product.create({
-    name: "New Product",
-    price: 0,
+    ...data,
     user: req.user._id,
-    image: "/images/sample.jpg",
-    brand: "Sample brand",
-    category: "Sample category",
-    countInStock: 0,
-    numReviews: 0,
-    description: "Add a product description",
   });
 
   res.status(201).json(product);
@@ -50,11 +50,17 @@ const updateProduct = asyncHandler(async (req, res) => {
     throw new Error("Product not found");
   }
 
-  const fields = ["name", "price", "image", "brand", "category", "countInStock", "description"];
-  for (const field of fields) {
-    if (req.body[field] !== undefined) product[field] = req.body[field];
+  const { data, error } = validateProductFields(req.body, { partial: true });
+  if (error) {
+    res.status(400);
+    throw new Error(error);
+  }
+  if (Object.keys(data).length === 0) {
+    res.status(400);
+    throw new Error("At least one valid product field is required");
   }
 
+  Object.assign(product, data);
   const updatedProduct = await product.save();
   res.json(updatedProduct);
 });
