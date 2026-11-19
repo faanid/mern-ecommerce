@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { validateProductFields, normalizeOrderItems } from "../utils/validation.js";
+import { validateProductFields, normalizeOrderItems, isValidEmail } from "../utils/validation.js";
 
 test("product validation trims strings and normalizes numeric fields", () => {
   const result = validateProductFields({
@@ -54,4 +54,48 @@ test("order validation rejects empty and oversized item arrays", () => {
   assert.ok(normalizeOrderItems(Array.from({ length: 51 }, (_, i) => ({
     product: String(i), qty: 1,
   }))).error);
+});
+
+test("email validation accepts common valid addresses", () => {
+  for (const email of [
+    "user@example.com",
+    "first.last+tag@example.co.uk",
+    "user_name-123@sub.example.org",
+    "  USER@EXAMPLE.COM  ",
+  ]) {
+    assert.equal(isValidEmail(email), true, email);
+  }
+});
+
+test("email validation rejects malformed addresses", () => {
+  for (const email of [
+    "",
+    "   ",
+    "plain-address",
+    "@example.com",
+    "user@",
+    "user@example",
+    "user@example.c",
+    "user..name@example.com",
+    ".user@example.com",
+    "user.@example.com",
+    "user name@example.com",
+    "user@@example.com",
+    "user@example..com",
+    "user@-example.com",
+    "user@example-.com",
+    "user@example.com.",
+  ]) {
+    assert.equal(isValidEmail(email), false, email);
+  }
+});
+
+test("email validation enforces length limits and string input", () => {
+  assert.equal(isValidEmail("a".repeat(64) + "@example.com"), true);
+  assert.equal(isValidEmail("a".repeat(65) + "@example.com"), false);
+  assert.equal(isValidEmail("a".repeat(246) + "@example.com"), false);
+  assert.equal(isValidEmail(null), false);
+  assert.equal(isValidEmail(undefined), false);
+  assert.equal(isValidEmail(123), false);
+  assert.equal(isValidEmail({ email: "user@example.com" }), false);
 });
