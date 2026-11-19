@@ -26,6 +26,17 @@ export const ordersApiSlice = apiSlice.injectEndpoints({
         ...result.map(({ _id }) => ({ type: "Order", id: _id })),
       ],
     }),
+    markOrderAsPaid: builder.mutation({
+      query: (orderId) => ({
+        url: `${ORDERS_URL}/${orderId}/pay`,
+        method: "PUT",
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: "Order", id },
+        { type: "Order", id: "LIST" },
+        { type: "Order", id: "MY_ORDERS" },
+      ],
+    }),
     deliverOrder: builder.mutation({
       query: (orderId) => ({
         url: `${ORDERS_URL}/${orderId}/deliver`,
@@ -45,5 +56,6 @@ export const {
   useGetOrderDetailsQuery,
   useGetMyOrdersQuery,
   useGetOrdersQuery,
+  useMarkOrderAsPaidMutation,
   useDeliverOrderMutation,
 } = ordersApiSlice;
