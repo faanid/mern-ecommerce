@@ -62,3 +62,38 @@ export const normalizeOrderItems = (items) => {
     error: null,
   };
 };
+
+
+const EMAIL_LOCAL_PART_REGEX = /^[A-Z0-9!#$%&'*+/=?^_\x60{|}~-]+(?:\.[A-Z0-9!#$%&'*+/=?^_\x60{|}~-]+)*$/i;
+
+export const isValidEmail = (email) => {
+  if (typeof email !== "string") return false;
+
+  const normalizedEmail = email.trim();
+  if (!normalizedEmail || normalizedEmail.length > 254) return false;
+
+  const atIndex = normalizedEmail.lastIndexOf("@");
+  if (atIndex <= 0 || atIndex !== normalizedEmail.indexOf("@")) return false;
+
+  const localPart = normalizedEmail.slice(0, atIndex);
+  const domain = normalizedEmail.slice(atIndex + 1);
+
+  if (localPart.length > 64 || !EMAIL_LOCAL_PART_REGEX.test(localPart)) {
+    return false;
+  }
+
+  const domainLabels = domain.split(".");
+  if (domainLabels.length < 2) return false;
+
+  return domainLabels.every((label, index) => {
+    if (
+      label.length < 1 ||
+      label.length > 63 ||
+      !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label)
+    ) {
+      return false;
+    }
+
+    return index !== domainLabels.length - 1 || label.length >= 2;
+  });
+};
