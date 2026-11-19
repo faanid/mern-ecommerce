@@ -1,6 +1,10 @@
 import { Link, useParams } from "react-router-dom";
-import { Card, Col, ListGroup, Row } from "react-bootstrap";
-import { useGetOrderDetailsQuery } from "../slices/ordersApiSlice";
+import { Button, Card, Col, ListGroup, Row } from "react-bootstrap";
+import {
+  useGetOrderDetailsQuery,
+  useMarkOrderAsPaidMutation,
+  useDeliverOrderMutation,
+} from "../slices/ordersApiSlice";
 import { useGetUserProfileQuery } from "../slices/usersApiSlice";
 import Loader from "../components/Loader";
 import Message from "../components/Message";
@@ -9,6 +13,8 @@ const OrderScreen = () => {
   const { id } = useParams();
   const { data: user, isLoading: isUserLoading, error: userError } = useGetUserProfileQuery();
   const { data: order, isLoading, error } = useGetOrderDetailsQuery(id, { skip: !user });
+  const [markOrderAsPaid, { isLoading: isMarkingPaid, error: markPaidError }] = useMarkOrderAsPaidMutation();
+  const [deliverOrder, { isLoading: isDelivering, error: deliverError }] = useDeliverOrderMutation();
 
   if (isUserLoading || isLoading) return <Loader />;
   if (userError) return <Message variant="danger">Please <Link to={`/login?redirect=/order/${id}`}>sign in</Link> to view this order.</Message>;
@@ -26,11 +32,31 @@ const OrderScreen = () => {
               <p>{order.user?.name}</p>
               <p>{order.shippingAddress.address}, {order.shippingAddress.city}, {order.shippingAddress.postalCode}, {order.shippingAddress.country}</p>
               <Message variant={order.isDelivered ? "success" : "warning"}>{order.isDelivered ? `Delivered on ${new Date(order.deliveredAt).toLocaleDateString()}` : "Not delivered"}</Message>
+              {user.isAdmin && !order.isDelivered && (
+                <Button
+                  className="mt-2"
+                  disabled={!order.isPaid || isDelivering}
+                  onClick={() => deliverOrder(id)}
+                >
+                  {isDelivering ? "Updating..." : "Mark as Delivered"}
+                </Button>
+              )}
+              {deliverError && <Message variant="danger">{deliverError?.data?.message || deliverError.error || "Unable to update delivery status"}</Message>}
             </ListGroup.Item>
             <ListGroup.Item>
               <h2>Payment</h2>
               <p>{order.paymentMethod}</p>
               <Message variant={order.isPaid ? "success" : "warning"}>{order.isPaid ? "Paid" : "Payment has not been recorded"}</Message>
+              {user.isAdmin && !order.isPaid && (
+                <Button
+                  className="mt-2"
+                  disabled={isMarkingPaid}
+                  onClick={() => markOrderAsPaid(id)}
+                >
+                  {isMarkingPaid ? "Confirming..." : "Confirm Offline Payment"}
+                </Button>
+              )}
+              {markPaidError && <Message variant="danger">{markPaidError?.data?.message || markPaidError.error || "Unable to confirm payment"}</Message>}
             </ListGroup.Item>
             <ListGroup.Item>
               <h2>Items</h2>
