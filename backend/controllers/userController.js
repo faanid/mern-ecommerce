@@ -174,6 +174,15 @@ export const createUserController = ({ UserModel = User } = {}) => {
       throw new Error("User not found");
     }
 
+    if (user.isAdmin) {
+      const adminCount = await UserModel.countDocuments({ isAdmin: true });
+
+      if (adminCount <= 1) {
+        res.status(400);
+        throw new Error("Cannot delete the last administrator");
+      }
+    }
+
     await user.deleteOne();
     res.json({ message: "User removed" });
   });
@@ -212,6 +221,15 @@ export const createUserController = ({ UserModel = User } = {}) => {
         res.status(400);
         throw new Error("isAdmin must be a boolean");
       }
+      if (user.isAdmin && !req.body.isAdmin) {
+        const adminCount = await UserModel.countDocuments({ isAdmin: true });
+
+        if (adminCount <= 1) {
+          res.status(400);
+          throw new Error("Cannot demote the last administrator");
+        }
+      }
+
       user.isAdmin = req.body.isAdmin;
     }
 
