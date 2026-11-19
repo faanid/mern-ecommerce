@@ -7,7 +7,10 @@ import { normalizeOrderItems } from "../utils/validation.js";
 const roundCurrency = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 const createOrder = asyncHandler(async (req, res) => {
-  const { orderItems, shippingAddress, paymentMethod } = req.body;
+  const body = req.body && typeof req.body === "object" && !Array.isArray(req.body)
+    ? req.body
+    : {};
+  const { orderItems, shippingAddress, paymentMethod } = body;
 
   const { items: validatedItems, error: itemsError } = normalizeOrderItems(orderItems);
   if (itemsError) {
