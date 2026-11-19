@@ -1,29 +1,36 @@
 # MERN E-commerce
 
-A MERN-stack e-commerce application built with MongoDB, Express, React, and Node.js.
+[![CI](https://github.com/faanid/mern-ecommerce/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/faanid/mern-ecommerce/actions/workflows/ci.yml)
+
+A full-stack e-commerce application built with MongoDB, Express, React, and Node.js.
 
 ## Features
 
 - Public product catalogue and product detail pages
 - Shopping cart persisted in browser local storage
 - User registration, login, logout, and profile updates
-- JWT authentication stored in an HTTP-only cookie
+- JWT authentication using HTTP-only cookies
 - Admin-protected product and user management APIs
-- Shipping address, order placement, order history, and order details
+- Shipping address management and order placement
+- Order history and order details
 - Server-side order pricing based on current product prices
+- Admin order management with manual offline payment confirmation
+- Delivery status updates restricted to paid orders
 
-## Important limitations
+## Important Limitations
 
-- Online payment processing is not integrated. Orders currently use a clearly labelled manual/offline payment method and remain unpaid until a payment workflow is implemented.
-- Inventory is checked when an order is created, but stock is not reserved or decremented because payment confirmation and cancellation flows are not implemented yet.
-- Admin product CRUD and user-management APIs are available, but dedicated admin dashboard screens are not yet implemented.
-- This project is still under development and has not yet been certified as production-ready.
+- No online payment gateway is integrated. Administrators can manually confirm offline payments. Orders remain unpaid until an administrator confirms payment.
+- Inventory availability is checked when an order is created, but stock is not reserved or decremented. Concurrent orders may exceed available stock.
+- Admin product CRUD and user-management APIs are available. Admins can also manage payment and delivery status from order details, but dedicated admin dashboard screens are not implemented.
+- Production deployment and security configuration still require additional validation. This project is not presented as production-ready.
 
-## Tech stack
+## Tech Stack
 
 - **Frontend:** React 18, React Router 6, Redux Toolkit / RTK Query, React Bootstrap
 - **Backend:** Node.js, Express 4, Mongoose
+- **Database:** MongoDB
 - **Authentication:** JSON Web Tokens in HTTP-only cookies
+- **CI:** GitHub Actions
 
 ## Requirements
 
@@ -40,7 +47,7 @@ A MERN-stack e-commerce application built with MongoDB, Express, React, and Node
    cd mern-ecommerce
    ```
 
-2. Install root/backend dependencies:
+2. Install backend dependencies:
 
    ```bash
    npm install
@@ -52,7 +59,7 @@ A MERN-stack e-commerce application built with MongoDB, Express, React, and Node
    npm install --prefix frontend
    ```
 
-4. Create a root `.env` file from `.env.example`. Set a real MongoDB URI and a long, random JWT secret.
+4. Create a root `.env` file based on `.env.example`. Configure a valid MongoDB URI and a long, random JWT secret.
 
 5. Start both applications:
 
@@ -63,7 +70,7 @@ A MERN-stack e-commerce application built with MongoDB, Express, React, and Node
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:5000
 
-The React development server proxies `/api` requests to the backend. In production, configure the frontend and API behind the same site (or configure CORS and cookie settings deliberately before using separate origins).
+The React development server proxies `/api` requests to the backend. For production, configure the frontend and API behind the same site, or deliberately configure CORS and cookie settings when using separate origins.
 
 ## Scripts
 
@@ -73,23 +80,24 @@ The React development server proxies `/api` requests to the backend. In producti
 | `npm start` | Start the backend |
 | `npm run server` | Start the backend with nodemon |
 | `npm run client` | Start the frontend |
+| `npm test` | Run backend automated tests |
 | `npm run data:import` | Clear and seed the database with sample data |
 | `npm run data:destroy` | Delete seeded users, products, and orders |
 
-**Warning:** Both Seeder commands delete existing documents from the `users`, `products`, and `orders` collections. Use them only with a disposable development database.
+**Warning:** Both seeder commands can delete existing documents from the `users`, `products`, and `orders` collections. Use them only with a disposable development database.
 
-## Environment variables
+## Environment Variables
 
 | Variable | Required | Description |
 | --- | --- | --- |
 | `MONGO_URI` | Yes | MongoDB connection string |
-| `JWT_SECRET` | Yes | Long, random secret used to sign JWTs |
+| `JWT_SECRET` | Yes | Secret used to sign JWTs |
 | `PORT` | No | API port; defaults to `5000` |
-| `NODE_ENV` | No | Use `production` in production |
+| `NODE_ENV` | No | Set to `production` in production |
 
 Never commit your real `.env` file or production secrets.
 
-## API overview
+## API Overview
 
 All endpoints are prefixed with `/api`.
 
@@ -125,11 +133,25 @@ All endpoints are prefixed with `/api`.
 | GET | `/orders/myorders` | Authenticated |
 | GET | `/orders/:id` | Owner or Admin |
 | GET | `/orders` | Admin |
+| PUT | `/orders/:id/pay` | Admin |
 | PUT | `/orders/:id/deliver` | Admin |
 
-The backend recalculates item prices, tax, shipping, and totals from database product records; it does not trust prices submitted by the browser.
+The backend recalculates item prices, tax, shipping, and order totals using product records from the database rather than trusting prices submitted by the browser.
 
-## Project structure
+An order must be marked as paid before an administrator can mark it as delivered.
+
+## Continuous Integration
+
+GitHub Actions runs the following checks on pushes to `main` and pull requests targeting `main`:
+
+- Install backend and frontend dependencies
+- Run backend automated tests
+- Check backend JavaScript syntax
+- Build the frontend
+
+See the [CI workflow](https://github.com/faanid/mern-ecommerce/actions/workflows/ci.yml) for details.
+
+## Project Structure
 
 ```text
 .
@@ -148,6 +170,8 @@ The backend recalculates item prices, tax, shipping, and totals from database pr
 └── README.md
 ```
 
-## Development status
+## Development Status
 
-The core account, catalogue, cart, and order flows are being implemented and reviewed. Automated integration tests, payment integration, inventory reservation, admin UI, deployment configuration, and production security hardening remain outstanding.
+The core account, catalogue, cart, and order workflows are implemented. Backend automated tests and a GitHub Actions CI workflow are also in place.
+
+Payment gateway integration, inventory reservation, dedicated admin dashboard screens, deployment, and further production security validation remain outside the current scope.
