@@ -3,6 +3,7 @@ import asyncHandler from "../middleware/asyncHandler.js";
 import Order from "../modules/orderModel.js";
 import Product from "../modules/productModel.js";
 import { normalizeOrderItems } from "../utils/validation.js";
+import { getDeliveryError } from "../utils/orderState.js";
 
 const roundCurrency = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
 
@@ -120,6 +121,35 @@ const getOrders = asyncHandler(async (req, res) => {
   res.json(orders);
 });
 
+const updateOrderToPaid = asyncHandler(async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    res.status(404);
+    throw new Error("Order not found");
+  }
+
+  const order = await Order.findById(req.params.id);
+  if (!order) {
+    res.status(404);
+    throw new Error("Order not found");
+  }
+
+  if (order.isPaid) {
+    res.json(order);
+    return;
+  }
+
+  const paidAt = new Date();
+  order.isPaid = true;
+  order.paidAt = paidAt;
+  order.paymentResult = {
+    status: "Manually confirmed by admin",
+    update_time: paidAt.toISOString(),
+  };
+
+  const updatedOrder = await order.save();
+  res.json(updatedOrder);
+});
+
 const updateOrderToDelivered = asyncHandler(async (req, res) => {
   if (!mongoose.isValidObjectId(req.params.id)) {
     res.status(404);
@@ -132,10 +162,21 @@ const updateOrderToDelivered = asyncHandler(async (req, res) => {
     throw new Error("Order not found");
   }
 
+  const deliveryError = getDeliveryError(order);
+  if (deliveryError) {
+    res.status(400);
+    throw new Error(deliveryError);
+  }
+
+  if (order.isDelivered) {
+    res.json(order);
+    return;
+  }
+
   order.isDelivered = true;
   order.deliveredAt = new Date();
   const updatedOrder = await order.save();
   res.json(updatedOrder);
 });
 
-export { createOrder, getOrderById, getMyOrders, getOrders, updateOrderToDelivered };
+export { createOrder, getOrderById, getMyOrders, getOrders, updateOrderToPaid, updateOrderToDelivered };
