@@ -1,11 +1,11 @@
-const windows = new Map();
-
 export const createRateLimiter = ({
   windowMs,
   max,
   message = "Too many requests. Please try again later.",
   now = () => Date.now(),
 }) => {
+  const windows = new Map();
+
   return (req, res, next) => {
     const key = req.ip || req.socket?.remoteAddress || "unknown";
     const currentTime = now();
