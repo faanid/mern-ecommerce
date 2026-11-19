@@ -27,6 +27,7 @@ const toPublicUser = (user) => ({
   isAdmin: user.isAdmin,
 });
 
+export const createUserController = ({ UserModel = User } = {}) => {
 // @route POST /api/users/login
 const authUser = asyncHandler(async (req, res) => {
   const email = (typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "");
@@ -42,7 +43,7 @@ const authUser = asyncHandler(async (req, res) => {
     throw new Error("Please provide a valid email address");
   }
 
-  const user = await User.findOne({ email }).select("+password");
+  const user = await UserModel.findOne({ email }).select("+password");
   if (!user || !(await user.matchPassword(password))) {
     res.status(401);
     throw new Error("Invalid email or password");
@@ -72,14 +73,14 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error("Password must be at least 8 characters long");
   }
 
-  const existingUser = await User.findOne({ email });
+  const existingUser = await UserModel.findOne({ email });
   if (existingUser) {
     res.status(409);
     throw new Error("An account with this email already exists");
   }
 
   const hashedPassword = await bcrypt.hash(password, 12);
-  const user = await User.create({ name, email, password: hashedPassword });
+  const user = await UserModel.create({ name, email, password: hashedPassword });
 
   res.cookie("jwt", createToken(user._id.toString()), COOKIE_OPTIONS);
   res.status(201).json(toPublicUser(user));
@@ -103,7 +104,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
 
 // @route PUT /api/users/profile
 const updateUserProfile = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id);
+  const user = await UserModel.findById(req.user._id);
   if (!user) {
     res.status(404);
     throw new Error("User not found");
@@ -124,7 +125,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
       res.status(400);
       throw new Error("Please provide a valid email address");
     }
-    const emailOwner = await User.findOne({ email, _id: { $ne: user._id } });
+    const emailOwner = await UserModel.findOne({ email, _id: { $ne: user._id } });
     if (emailOwner) {
       res.status(409);
       throw new Error("An account with this email already exists");
@@ -146,13 +147,13 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 
 // @route GET /api/users
 const getUsers = asyncHandler(async (req, res) => {
-  const users = await User.find({}).select("-password").sort({ createdAt: -1 });
+  const users = await UserModel.find({}).select("-password").sort({ createdAt: -1 });
   res.json(users);
 });
 
 // @route GET /api/users/:id
 const getUserByID = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id).select("-password");
+  const user = await UserModel.findById(req.params.id).select("-password");
   if (!user) {
     res.status(404);
     throw new Error("User not found");
@@ -167,7 +168,7 @@ const deleteUser = asyncHandler(async (req, res) => {
     throw new Error("Administrators cannot delete their own account here");
   }
 
-  const user = await User.findById(req.params.id);
+  const user = await UserModel.findById(req.params.id);
   if (!user) {
     res.status(404);
     throw new Error("User not found");
@@ -179,7 +180,7 @@ const deleteUser = asyncHandler(async (req, res) => {
 
 // @route PUT /api/users/:id
 const updateUser = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id);
+  const user = await UserModel.findById(req.params.id);
   if (!user) {
     res.status(404);
     throw new Error("User not found");
@@ -199,7 +200,7 @@ const updateUser = asyncHandler(async (req, res) => {
       res.status(400);
       throw new Error("Please provide a valid email address");
     }
-    const emailOwner = await User.findOne({ email, _id: { $ne: user._id } });
+    const emailOwner = await UserModel.findOne({ email, _id: { $ne: user._id } });
     if (emailOwner) {
       res.status(409);
       throw new Error("An account with this email already exists");
@@ -217,6 +218,32 @@ const updateUser = asyncHandler(async (req, res) => {
   const updatedUser = await user.save();
   res.json(toPublicUser(updatedUser));
 });
+
+
+  return {
+  authUser,
+  registerUser,
+  logoutUser,
+  getUserProfile,
+  updateUserProfile,
+  getUsers,
+  deleteUser,
+  getUserByID,
+  updateUser,
+  };
+};
+
+const {
+  authUser,
+  registerUser,
+  logoutUser,
+  getUserProfile,
+  updateUserProfile,
+  getUsers,
+  deleteUser,
+  getUserByID,
+  updateUser,
+} = createUserController();
 
 export {
   authUser,
