@@ -27,11 +27,17 @@ const toPublicUser = (user) => ({
   isAdmin: user.isAdmin,
 });
 
+const getRequestBody = (req) =>
+  req.body && typeof req.body === "object" && !Array.isArray(req.body)
+    ? req.body
+    : {};
+
 export const createUserController = ({ UserModel = User } = {}) => {
   // @route POST /api/users/login
   const authUser = asyncHandler(async (req, res) => {
-    const email = (typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "");
-    const password = req.body.password;
+    const body = getRequestBody(req);
+    const email = (typeof body.email === "string" ? body.email.trim().toLowerCase() : "");
+    const password = body.password;
 
     if (!email || typeof password !== "string" || !password) {
       res.status(400);
@@ -55,9 +61,10 @@ export const createUserController = ({ UserModel = User } = {}) => {
 
   // @route POST /api/users
   const registerUser = asyncHandler(async (req, res) => {
-    const name = String(req.body.name || "").trim();
-    const email = (typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "");
-    const password = req.body.password;
+    const body = getRequestBody(req);
+    const name = String(body.name || "").trim();
+    const email = (typeof body.email === "string" ? body.email.trim().toLowerCase() : "");
+    const password = body.password;
 
     if (!name || !email || typeof password !== "string") {
       res.status(400);
@@ -104,14 +111,15 @@ export const createUserController = ({ UserModel = User } = {}) => {
 
   // @route PUT /api/users/profile
   const updateUserProfile = asyncHandler(async (req, res) => {
+    const body = getRequestBody(req);
     const user = await UserModel.findById(req.user._id);
     if (!user) {
       res.status(404);
       throw new Error("User not found");
     }
 
-    if (req.body.name !== undefined) {
-      const name = String(req.body.name).trim();
+    if (body.name !== undefined) {
+      const name = String(body.name).trim();
       if (!name) {
         res.status(400);
         throw new Error("Name cannot be empty");
@@ -119,8 +127,8 @@ export const createUserController = ({ UserModel = User } = {}) => {
       user.name = name;
     }
 
-    if (req.body.email !== undefined) {
-      const email = (typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "");
+    if (body.email !== undefined) {
+      const email = (typeof body.email === "string" ? body.email.trim().toLowerCase() : "");
       if (!isValidEmail(email)) {
         res.status(400);
         throw new Error("Please provide a valid email address");
@@ -133,12 +141,12 @@ export const createUserController = ({ UserModel = User } = {}) => {
       user.email = email;
     }
 
-    if (req.body.password !== undefined) {
-      if (typeof req.body.password !== "string" || req.body.password.length < 8) {
+    if (body.password !== undefined) {
+      if (typeof body.password !== "string" || body.password.length < 8) {
         res.status(400);
         throw new Error("Password must be at least 8 characters long");
       }
-      user.password = await bcrypt.hash(req.body.password, 12);
+      user.password = await bcrypt.hash(body.password, 12);
     }
 
     const updatedUser = await user.save();
@@ -189,22 +197,23 @@ export const createUserController = ({ UserModel = User } = {}) => {
 
   // @route PUT /api/users/:id
   const updateUser = asyncHandler(async (req, res) => {
+    const body = getRequestBody(req);
     const user = await UserModel.findById(req.params.id);
     if (!user) {
       res.status(404);
       throw new Error("User not found");
     }
 
-    if (req.body.name !== undefined) {
-      const name = String(req.body.name).trim();
+    if (body.name !== undefined) {
+      const name = String(body.name).trim();
       if (!name) {
         res.status(400);
         throw new Error("Name cannot be empty");
       }
       user.name = name;
     }
-    if (req.body.email !== undefined) {
-      const email = (typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "");
+    if (body.email !== undefined) {
+      const email = (typeof body.email === "string" ? body.email.trim().toLowerCase() : "");
       if (!isValidEmail(email)) {
         res.status(400);
         throw new Error("Please provide a valid email address");
@@ -216,12 +225,12 @@ export const createUserController = ({ UserModel = User } = {}) => {
       }
       user.email = email;
     }
-    if (req.body.isAdmin !== undefined) {
-      if (typeof req.body.isAdmin !== "boolean") {
+    if (body.isAdmin !== undefined) {
+      if (typeof body.isAdmin !== "boolean") {
         res.status(400);
         throw new Error("isAdmin must be a boolean");
       }
-      if (user.isAdmin && !req.body.isAdmin) {
+      if (user.isAdmin && !body.isAdmin) {
         const adminCount = await UserModel.countDocuments({ isAdmin: true });
 
         if (adminCount <= 1) {
@@ -230,7 +239,7 @@ export const createUserController = ({ UserModel = User } = {}) => {
         }
       }
 
-      user.isAdmin = req.body.isAdmin;
+      user.isAdmin = body.isAdmin;
     }
 
     const updatedUser = await user.save();
