@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import asyncHandler from "../middleware/asyncHandler.js";
 import User from "../modules/userModel.js";
+import { isValidEmail } from "../utils/validation.js";
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -28,12 +29,17 @@ const toPublicUser = (user) => ({
 
 // @route POST /api/users/login
 const authUser = asyncHandler(async (req, res) => {
-  const email = String(req.body.email || "").trim().toLowerCase();
+  const email = (typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "");
   const password = req.body.password;
 
   if (!email || typeof password !== "string" || !password) {
     res.status(400);
     throw new Error("Email and password are required");
+  }
+
+  if (!isValidEmail(email)) {
+    res.status(400);
+    throw new Error("Please provide a valid email address");
   }
 
   const user = await User.findOne({ email }).select("+password");
@@ -49,12 +55,17 @@ const authUser = asyncHandler(async (req, res) => {
 // @route POST /api/users
 const registerUser = asyncHandler(async (req, res) => {
   const name = String(req.body.name || "").trim();
-  const email = String(req.body.email || "").trim().toLowerCase();
+  const email = (typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "");
   const password = req.body.password;
 
   if (!name || !email || typeof password !== "string") {
     res.status(400);
     throw new Error("Name, email, and password are required");
+  }
+
+  if (!isValidEmail(email)) {
+    res.status(400);
+    throw new Error("Please provide a valid email address");
   }
   if (password.length < 8) {
     res.status(400);
@@ -108,10 +119,10 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   }
 
   if (req.body.email !== undefined) {
-    const email = String(req.body.email).trim().toLowerCase();
-    if (!email) {
+    const email = (typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "");
+    if (!isValidEmail(email)) {
       res.status(400);
-      throw new Error("Email cannot be empty");
+      throw new Error("Please provide a valid email address");
     }
     const emailOwner = await User.findOne({ email, _id: { $ne: user._id } });
     if (emailOwner) {
@@ -183,7 +194,11 @@ const updateUser = asyncHandler(async (req, res) => {
     user.name = name;
   }
   if (req.body.email !== undefined) {
-    const email = String(req.body.email).trim().toLowerCase();
+    const email = (typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "");
+    if (!isValidEmail(email)) {
+      res.status(400);
+      throw new Error("Please provide a valid email address");
+    }
     const emailOwner = await User.findOne({ email, _id: { $ne: user._id } });
     if (emailOwner) {
       res.status(409);
